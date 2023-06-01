@@ -3,46 +3,40 @@ package main
 import (
 	"bufio"
 	"fmt"
-	"io"
-	"log"
-	"net/http"
+	"github.com/yutfut/tugging_urls/tugging"
 	"os"
-	"time"
+	"sync"
 )
 
-func che(file io.Writer, url string) {
-	resp, err := http.Get(url)
-	if err != nil {
-		fmt.Println(url + " " + err.Error())
-	}
-
-	_, err = fmt.Fprintln(file, url+" - "+resp.Status)
-	if err != nil {
-		fmt.Println(url + " " + err.Error())
-	}
-}
-
 func main() {
-	file, err := os.OpenFile("urls.txt", os.O_RDONLY, 0666)
+	ReadFile, err := os.OpenFile("urls.txt", os.O_RDONLY, 0666)
 	if err != nil {
 		panic(err)
 	}
-	defer file.Close()
+	defer ReadFile.Close()
 
-	f2, err := os.OpenFile("result.txt", os.O_WRONLY, 0666)
+	WriteFile, err := os.OpenFile("result.txt", os.O_RDWR|os.O_CREATE, 0666)
 	if err != nil {
 		panic(err)
 	}
-	defer f2.Close()
+	defer WriteFile.Close()
 
-	fileScanner := bufio.NewScanner(file)
+	fileScanner := bufio.NewScanner(ReadFile)
+
+	wg := &sync.WaitGroup{}
 
 	for fileScanner.Scan() {
-		go che(f2, fileScanner.Text())
+		wg.Add(1)
+		go tugging.TuggingUrls(WriteFile, fileScanner.Text(), wg)
 	}
 
 	if err = fileScanner.Err(); err != nil {
-		log.Fatalf("Error while reading file: %s", err)
+		fmt.Printf("Error while reading ReadFile: %s", err)
 	}
-	time.Sleep(2 * time.Second)
+
+	WaitChan := make(chan int, 1)
+
+	go tugging.Wait(wg, WaitChan)
+
+	_, _ = <-WaitChan
 }
