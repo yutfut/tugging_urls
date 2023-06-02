@@ -9,34 +9,34 @@ import (
 )
 
 func main() {
-	ReadFile, err := os.OpenFile("urls.txt", os.O_RDONLY, 0666)
+	readFile, err := os.OpenFile("urls.txt", os.O_RDONLY, 0666)
 	if err != nil {
 		panic(err)
 	}
-	defer ReadFile.Close()
+	defer readFile.Close()
 
-	WriteFile, err := os.OpenFile("result.txt", os.O_RDWR|os.O_CREATE, 0666)
+	writeFile, err := os.OpenFile("result.txt", os.O_WRONLY|os.O_CREATE, 0666)
 	if err != nil {
 		panic(err)
 	}
-	defer WriteFile.Close()
+	defer writeFile.Close()
 
-	fileScanner := bufio.NewScanner(ReadFile)
+	fileScanner := bufio.NewScanner(readFile)
 
 	wg := &sync.WaitGroup{}
 
 	for fileScanner.Scan() {
 		wg.Add(1)
-		go tugging.TuggingUrls(WriteFile, fileScanner.Text(), wg)
+		go tugging.TuggingUrls(writeFile, fileScanner.Text(), wg)
 	}
 
 	if err = fileScanner.Err(); err != nil {
-		fmt.Printf("Error while reading ReadFile: %s", err)
+		fmt.Printf("Error while reading readFile: %s", err)
 	}
 
-	WaitChan := make(chan int, 1)
+	waitChan := make(chan int, 1)
 
-	go tugging.Wait(wg, WaitChan)
+	go tugging.Wait(wg, waitChan)
 
-	_, _ = <-WaitChan
+	_, _ = <-waitChan
 }

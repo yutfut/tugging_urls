@@ -1,0 +1,32 @@
+name: ci
+
+on: [push, pull_request]
+
+jobs:
+  test-coverage:
+    name: Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.19
+
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Install Dependecies
+        run: go get ./...
+
+      - name: Go mod tidy
+        run: go mod tidy
+
+      - name: Test
+        run: go test ./...
+
+      - name: Coverage tests
+        run: |
+          go test ./... --cover  --coverpkg ./... --coverprofile cover.out
+          cat cover.out | grep -v ".pb.go"|grep -v "mock"|grep -v "easyjson" > cover_without_gen.out
+      - name: Print total coverage
+        run: go tool cover -func cover_without_gen.out
